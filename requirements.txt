@@ -1,0 +1,4 @@
+falcon
+peewee
+psycopg2
+gunicorn
