@@ -75,6 +75,17 @@ $ export PEAKDB_PASS=peak
 $ export PEAKDB_HOST=127.0.0.1
 ```
 
+Configure environment variables for the API:
+
+```
+# the status URI is for this service - it should be addressable from 
+# docker containers running from the peakrunner Docker hosts
+$ export STATUS_URI=http://peakorc-ip:8080
+
+# the runner URI is for the peakrunner service
+$ export RUNNER_URI=http://peak-runner-ip:6511
+```
+
 Create a virtualenv and install the `peakorc` requirements:
 
 ```
