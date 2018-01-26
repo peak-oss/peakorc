@@ -24,6 +24,7 @@ class BaseModel(Model):
 
 
 class PeakTestSuite(BaseModel):
+    initiated = DateTimeField(default=datetime.datetime.now)
     uuid = UUIDField()
     description = TextField(default="not_specified")
     requests = BigIntegerField(default=0)
