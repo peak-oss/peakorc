@@ -102,7 +102,17 @@ class PeakSuiteTimeDataResource():
 
 class PeakSuitesResource():
     def on_get(self, req, resp):
-        suites = PeakTestSuite.select()
+        # check if this is a paginated query
+        paginate = False
+        page_by = 10
+        page = 0
+        for k,v in req.params.items():
+            if k == "page":
+                paginate = True
+                page = int(v)
+        suites = PeakTestSuite.select().order_by(PeakTestSuite.initiated.desc())
+        if paginate:
+            suites = suites.paginate(page,page_by)
         resp.body = json.dumps([model_to_dict(s) for s in suites],
                                indent=4,
                                default=str)
