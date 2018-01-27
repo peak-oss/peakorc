@@ -2,6 +2,7 @@ import falcon
 from peakmodels import *
 from playhouse.shortcuts import model_to_dict
 import json
+import math
 import uuid
 import requests
 import os
@@ -106,16 +107,18 @@ class PeakSuitesResource():
         paginate = False
         page_by = 10
         page = 0
+        to_json = {}
         for k,v in req.params.items():
             if k == "page":
                 paginate = True
                 page = int(v)
         suites = PeakTestSuite.select().order_by(PeakTestSuite.initiated.desc())
         if paginate:
+            # count the total suites before paginating the query
+            to_json['total_pages'] = int(math.ceil(float(suites.count())/float(page_by)))
             suites = suites.paginate(page,page_by)
-        resp.body = json.dumps([model_to_dict(s) for s in suites],
-                               indent=4,
-                               default=str)
+        to_json['suites'] = [model_to_dict(s) for s in suites]
+        resp.body = json.dumps(to_json, indent=4, default=str)
 
 class PeakSuitesTestsDetailResource():
     def on_get(self, req, resp, suite_uuid):
