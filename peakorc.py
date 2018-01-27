@@ -117,7 +117,8 @@ class PeakSuiteAvgTimeResource():
                     diff = entry.duration - prev_entry.duration
                     avg = float(requests)/float(diff)
                     avg = 1/avg if diff < 1 else avg
-                    timedata.append((entry.duration, avg))
+                    # convert average to milliseconds
+                    timedata.append((entry.duration, 10000*avg))
                 prev_entry = entry
 
             resp.body = json.dumps(timedata)
