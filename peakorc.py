@@ -101,6 +101,30 @@ class PeakSuiteTimeDataResource():
         except PeakTestSuite.DoesNotExist:
             resp.status = falcon.HTTP_404
 
+class PeakSuiteAvgTimeResource():
+    def on_get(self, req, resp, suite_uuid):
+        try:
+            timedata = list()
+            suite = PeakTestSuite.get(PeakTestSuite.uuid == suite_uuid)
+            data = (PeakTimeData
+                     .select()
+                     .where(PeakTimeData.suite == suite)
+                     .order_by(PeakTimeData.duration))
+            prev_entry = None
+            for entry in data:
+                if prev_entry:
+                    requests = entry.num_ok + entry.num_error
+                    diff = entry.duration - prev_entry.duration
+                    avg = float(requests)/float(diff)
+                    avg = 1/avg if diff < 1 else avg
+                    timedata.append((entry.duration, avg))
+                prev_entry = entry
+
+            resp.body = json.dumps(timedata)
+        except PeakTestSuite.DoesNotExist:
+            resp.status = falcon.HTTP_404
+
+
 class PeakSuitesResource():
     def on_get(self, req, resp):
         # check if this is a paginated query
@@ -136,6 +160,7 @@ runner_uri = os.environ['RUNNER_URI']
 peak_suite_new = PeakNewSuiteResource(status_uri, runner_uri)
 peak_status = PeakStatusResource()
 peak_suite_time = PeakSuiteTimeDataResource()
+peak_suite_avg = PeakSuiteAvgTimeResource()
 peak_suites = PeakSuitesResource()
 peak_suite = PeakSuiteResource()
 peak_test = PeakTestResource()
@@ -147,4 +172,5 @@ api.add_route('/suites/{suite_uuid}', peak_suite)
 api.add_route('/suites/{suite_uuid}/tests', peak_suite_tests)
 api.add_route('/status/{test_uuid}', peak_status)
 api.add_route('/time_data/{suite_uuid}', peak_suite_time)
+api.add_route('/avg_time/{suite_uuid}', peak_suite_avg)
 api.add_route('/test/{test_uuid}', peak_test)
