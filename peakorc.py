@@ -89,16 +89,12 @@ class PeakSuiteTimeDataResource():
         try:
             timedata = list()
             suite = PeakTestSuite.get(PeakTestSuite.uuid == suite_uuid)
-            num_ok = 0
-            num_error = 0
             data = (PeakTimeData
                      .select()
                      .where(PeakTimeData.suite == suite)
                      .order_by(PeakTimeData.duration))
             for entry in data:
-                num_ok += entry.num_ok
-                num_error += entry.num_error
-                timedata.append((entry.duration, num_ok, num_error))
+                timedata.append((entry.duration, entry.num_ok, entry.num_error))
 
             resp.body = json.dumps(timedata)
         except PeakTestSuite.DoesNotExist:
