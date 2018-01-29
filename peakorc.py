@@ -1,6 +1,7 @@
 import falcon
 from peakmodels import *
 from playhouse.shortcuts import model_to_dict
+import numpy as np
 import json
 import math
 import uuid
@@ -104,22 +105,39 @@ class PeakSuiteTimeDataResource():
 class PeakSuiteAvgTimeResource():
     def on_get(self, req, resp, suite_uuid):
         try:
-            timedata = list()
+            # store the time-difference data for each test in the suite
+            test_lists = list()
             suite = PeakTestSuite.get(PeakTestSuite.uuid == suite_uuid)
-            data = (PeakTimeData
-                     .select()
-                     .where(PeakTimeData.suite == suite)
-                     .order_by(PeakTimeData.duration))
-            prev_entry = None
-            for entry in data:
-                if prev_entry:
-                    requests = entry.num_ok + entry.num_error
-                    diff = entry.duration - prev_entry.duration
-                    avg = float(requests)/float(diff)
-                    avg = 1/avg if diff < 1 else avg
-                    # convert average to milliseconds
-                    timedata.append((entry.duration, 10000*avg))
-                prev_entry = entry
+            tests = PeakTest.select().where(PeakTest.suite == suite)
+            for test in tests:
+                data = (PeakTimeData
+                         .select()
+                         .where(PeakTimeData.test == test)
+                         .order_by(PeakTimeData.duration))
+                test_data = list()
+                prev_entry = None
+                for entry in data:
+                    if prev_entry:
+                        test_data.append(entry.duration - prev_entry.duration)
+                    prev_entry = entry
+                test_lists.append(test_data)
+
+            # now that we have lists for each test, we can average the duration
+            # for each data point
+            arr = np.array(test_lists)
+            avg_data = np.mean(arr, axis=0)
+
+            # iterate over each averaged duration, and calculate the
+            # average response time
+            timedata = list()
+            tsum = 0
+            for dp in avg_data:
+                # peaktest returns 100 requests each time it posts back to peakorc
+                avg = float(dp)/100.0
+                tsum += dp
+
+                # convert average to milliseconds
+                timedata.append((tsum, 1000*avg))
 
             resp.body = json.dumps(timedata)
         except PeakTestSuite.DoesNotExist:
