@@ -1,7 +1,7 @@
 import falcon
 from peakmodels import *
 from playhouse.shortcuts import model_to_dict
-import numpy as np
+import numpy
 import json
 import math
 import uuid
@@ -124,8 +124,8 @@ class PeakSuiteAvgTimeResource():
 
             # now that we have lists for each test, we can average the duration
             # for each data point
-            arr = np.array(test_lists)
-            avg_data = np.mean(arr, axis=0)
+            arr = numpy.array(test_lists)
+            avg_data = numpy.mean(arr, axis=0)
 
             # iterate over each averaged duration, and calculate the
             # average response time
