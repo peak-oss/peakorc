@@ -185,11 +185,14 @@ peak_suite = PeakSuiteResource()
 peak_test = PeakTestResource()
 peak_suite_tests = PeakSuitesTestsDetailResource()
 
-api.add_route('/test_suite/new', peak_suite_new)
+# suites
 api.add_route('/suites/', peak_suites)
+api.add_route('/suites/new', peak_suite_new)
 api.add_route('/suites/{suite_uuid}', peak_suite)
 api.add_route('/suites/{suite_uuid}/tests', peak_suite_tests)
-api.add_route('/status/{test_uuid}', peak_status)
-api.add_route('/time_data/{suite_uuid}', peak_suite_time)
-api.add_route('/avg_time/{suite_uuid}', peak_suite_avg)
-api.add_route('/test/{test_uuid}', peak_test)
+api.add_route('/suites/{suite_uuid}/metrics/raw_response_times', peak_suite_time)
+api.add_route('/suites/{suite_uuid}/metrics/avg_response_times', peak_suite_avg)
+
+# tests
+api.add_route('/tests/{test_uuid}', peak_test)
+api.add_route('/tests/{test_uuid}/status', peak_test_status)
