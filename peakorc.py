@@ -190,7 +190,7 @@ api.add_route('/suites/', peak_suites)
 api.add_route('/suites/new', peak_suite_new)
 api.add_route('/suites/{suite_uuid}', peak_suite)
 api.add_route('/suites/{suite_uuid}/tests', peak_suite_tests)
-api.add_route('/suites/{suite_uuid}/metrics/raw_response_times', peak_suite_time)
+api.add_route('/suites/{suite_uuid}/metrics/raw_response_counts', peak_suite_time)
 api.add_route('/suites/{suite_uuid}/metrics/avg_response_times', peak_suite_avg)
 
 # tests
