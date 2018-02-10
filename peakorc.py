@@ -176,14 +176,15 @@ api = falcon.API(middleware=[PeeweeConnectionMiddleware()])
 status_uri = os.environ['STATUS_URI']
 runner_uri = os.environ['RUNNER_URI']
 
-peak_suite_new = PeakNewSuiteResource(status_uri, runner_uri)
-peak_status = PeakStatusResource()
-peak_suite_time = PeakSuiteTimeDataResource()
-peak_suite_avg = PeakSuiteAvgTimeResource()
-peak_suites = PeakSuitesResource()
 peak_suite = PeakSuiteResource()
-peak_test = PeakTestResource()
+peak_suites = PeakSuitesResource()
+peak_suite_avg = PeakSuiteAvgTimeResource()
+peak_suite_new = PeakNewSuiteResource(status_uri, runner_uri)
 peak_suite_tests = PeakSuitesTestsDetailResource()
+peak_suite_time = PeakSuiteTimeDataResource()
+
+peak_test = PeakTestResource()
+peak_test_status = PeakStatusResource()
 
 # suites
 api.add_route('/suites/', peak_suites)
