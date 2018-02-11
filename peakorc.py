@@ -32,40 +32,7 @@ class PeakSuiteResource():
             resp.status = falcon.HTTP_404
 
 
-class PeakNewSuiteResource():
-
-    def __init__(self, status_uri, runner_uri):
-        self.status_uri = status_uri
-        self.runner_uri = runner_uri
-
-    def on_post(self, req, resp):
-        requests_per_node = int(req.get_header('node-requests'))
-        url = req.get_header('test-url')
-        description = req.get_header('description')
-        nodes = int(req.get_header('nodes'))
-        total_requests = requests_per_node * nodes
-        suite_uuid = uuid.uuid4()
-        suite = PeakTestSuite.create(uuid=suite_uuid, requests=total_requests,
-                                     description=description)
-        for i in range(0, nodes):
-            test_uuid = uuid.uuid4()
-            PeakTest.create(url=url, requests_req=requests_per_node,
-                          uuid=test_uuid, suite=suite)
-            # TODO: Instead of creating a request directly to peakrunner, add
-            # a message to the queue and have a worker pull it off and create
-            # the request.
-            # This will provide far better UI response times.
-            docker_req = requests.post(self.runner_uri+"/start",
-                                 headers={'requests': str(requests_per_node),
-                                          'test-url': url,
-                                          'uuid': str(test_uuid),
-                                          'status-uri': self.status_uri})
-        resp.body = json.dumps({'id': str(suite_uuid) })
-
-
 class PeakStatusResource():
-
-
     def on_post(self, req, resp, test_uuid):
         try:
             test = PeakTest.get(PeakTest.uuid == test_uuid)
@@ -145,6 +112,10 @@ class PeakSuiteAvgTimeResource():
 
 
 class PeakSuitesResource():
+    def __init__(self, status_uri, runner_uri):
+        self.status_uri = status_uri
+        self.runner_uri = runner_uri
+
     def on_get(self, req, resp):
         # check if this is a paginated query
         paginate = False
@@ -163,6 +134,31 @@ class PeakSuitesResource():
         to_json['suites'] = [model_to_dict(s) for s in suites]
         resp.body = json.dumps(to_json, indent=4, default=str)
 
+    def on_post(self, req, resp):
+        requests_per_node = int(req.get_header('node-requests'))
+        url = req.get_header('test-url')
+        description = req.get_header('description')
+        nodes = int(req.get_header('nodes'))
+        total_requests = requests_per_node * nodes
+        suite_uuid = uuid.uuid4()
+        suite = PeakTestSuite.create(uuid=suite_uuid, requests=total_requests,
+                                     description=description)
+        for i in range(0, nodes):
+            test_uuid = uuid.uuid4()
+            PeakTest.create(url=url, requests_req=requests_per_node,
+                          uuid=test_uuid, suite=suite)
+            # TODO: Instead of creating a request directly to peakrunner, add
+            # a message to the queue and have a worker pull it off and create
+            # the request.
+            # This will provide far better UI response times.
+            docker_req = requests.post(self.runner_uri+"/start",
+                                 headers={'requests': str(requests_per_node),
+                                          'test-url': url,
+                                          'uuid': str(test_uuid),
+                                          'status-uri': self.status_uri})
+        resp.body = json.dumps({'id': str(suite_uuid) })
+
+
 class PeakSuitesTestsDetailResource():
     def on_get(self, req, resp, suite_uuid):
         suite = PeakTestSuite.get(PeakTestSuite.uuid == suite_uuid)
@@ -177,9 +173,8 @@ status_uri = os.environ['STATUS_URI']
 runner_uri = os.environ['RUNNER_URI']
 
 peak_suite = PeakSuiteResource()
-peak_suites = PeakSuitesResource()
+peak_suites = PeakSuitesResource(status_uri, runner_uri)
 peak_suite_avg = PeakSuiteAvgTimeResource()
-peak_suite_new = PeakNewSuiteResource(status_uri, runner_uri)
 peak_suite_tests = PeakSuitesTestsDetailResource()
 peak_suite_time = PeakSuiteTimeDataResource()
 
@@ -188,7 +183,6 @@ peak_test_status = PeakStatusResource()
 
 # suites
 api.add_route('/suites/', peak_suites)
-api.add_route('/suites/new', peak_suite_new)
 api.add_route('/suites/{suite_uuid}', peak_suite)
 api.add_route('/suites/{suite_uuid}/tests', peak_suite_tests)
 api.add_route('/suites/{suite_uuid}/metrics/raw_response_counts', peak_suite_time)
