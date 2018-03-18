@@ -86,16 +86,24 @@ $ export STATUS_URI=http://peakorc-ip:8080
 $ export RUNNER_URI=http://peak-runner-ip:6511
 ```
 
-Create a virtualenv and install the `peakorc` requirements:
+Create a virtualenv and install the latest `peakorc` from source:
 
 ```
 $ virtualenv peakenv
 $ source peakenv/bin/activate
-$ pip install -r requirements.txt
+(peakenv)$ git clone https://github.com/peak-oss/peakorc.git
+(peakenv)$ cd peakorc
+(peakenv)$ pip install -e .
 ```
-
-Start the service with gunicorn:
-
+You can then use the local script to start an instance of `peakorc`
 ```
-gunicorn --bind 0.0.0.0:8080 peakorc:api
+(peakenv)$ peakorc
+[2018-03-18 12:43:33 +0000] [23704] [INFO] Starting gunicorn 19.7.1
+[2018-03-18 12:43:33 +0000] [23704] [INFO] Listening at: http://0.0.0.0:8080 (23704)
+[2018-03-18 12:43:33 +0000] [23704] [INFO] Using worker: sync
+[2018-03-18 12:43:33 +0000] [23709] [INFO] Booting worker with pid: 23709
+```
+Note that you can optionally provide a bind host and port for the service:
+```
+(peakenv)$ peakorc -b 0.0.0.0 -p 8000
 ```
