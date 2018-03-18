@@ -15,6 +15,6 @@ setup (
         ],
     },
     packages=find_packages(),
-    install_requires=['falcon','peewee','psycopg2','requests','numpy',
+    install_requires=['falcon','peewee','psycopg2-binary','requests','numpy',
                       'subprocess32', 'gunicorn']
 )
