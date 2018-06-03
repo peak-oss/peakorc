@@ -5,3 +5,4 @@ gunicorn
 requests
 numpy
 subprocess32
+rq
