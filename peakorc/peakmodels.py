@@ -15,7 +15,7 @@ def init_tables():
 
 class PeeweeConnectionMiddleware(object):
     def process_request(self, req, resp):
-        psql_db.connect(reuse_if_open=True)
+        psql_db.get_conn()
 
 
 class BaseModel(Model):

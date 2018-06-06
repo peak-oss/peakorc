@@ -12,15 +12,17 @@ from rq import Queue
 
 def create_tests_from_req(requests_per_node, nodes, status_uri, runner_uri,
                           suite, url):
+    test_uuid = uuid.uuid4()
+    PeakTest.create(url=url, requests_req=requests_per_node,
+                    uuid=test_uuid, suite=suite)
+
+    # create all containers first
     for i in range(0, nodes):
-        test_uuid = uuid.uuid4()
-        PeakTest.create(url=url, requests_req=requests_per_node,
-                          uuid=test_uuid, suite=suite)
-        requests.post(runner_uri+"/start",
-                      headers={'requests': str(requests_per_node),
-                               'test-url': url,
-                               'uuid': str(test_uuid),
-                               'status-uri': status_uri})
+            requests.post(runner_uri+"/create",
+                          headers={'requests': str(requests_per_node),
+                                   'test-url': url,
+                                   'uuid': str(test_uuid),
+                                   'status-uri': status_uri})
 
 class PeakTestResource():
     def on_get(self, req, resp, test_uuid):
@@ -65,6 +67,38 @@ class PeakStatusResource():
             # set the boolean flag
             #test.save()
         except PeakTest.DoesNotExist:
+            resp.status = falcon.HTTP_404
+
+class PeakSuitesMetricsResource():
+    def on_get(self,req,resp, suite_uuid):
+        try:
+            num_ok = 0
+            num_error = 0
+            avg_rate = 0.0
+
+            suite = PeakTestSuite.get(PeakTestSuite.uuid == suite_uuid)
+            data = (PeakTimeData
+                    .select()
+                    .where(PeakTimeData.suite == suite)
+                    .order_by(PeakTimeData.duration))
+
+            for entry in data:
+                num_ok += entry.num_ok
+                num_error += entry.num_error
+                avg_rate += (num_ok+num_error).duration
+
+            # calculate request rate
+            request_rate = avg_rate/len(data)
+
+            # build response
+            to_json = {}
+            to_json['ok'] = num_ok
+            to_json['error'] = num_error
+            to_json['rate'] = request_rate
+
+            resp.body = json.dumps(to_json, indent=4, default=str)
+
+        except PeakTestSuite.DoesNotExist:
             resp.status = falcon.HTTP_404
 
 class PeakSuiteTimeDataResource():
@@ -158,8 +192,9 @@ class PeakSuitesResource():
         suite_uuid = uuid.uuid4()
         suite = PeakTestSuite.create(uuid=suite_uuid, requests=total_requests,
                                      description=description)
+
         self.queue.enqueue(create_tests_from_req,args=(requests_per_node,nodes,status_uri,
-                      runner_uri,suite,url),timeout=4000)
+                          runner_uri,suite,url),timeout=4000)
 
         resp.body = json.dumps({'id': str(suite_uuid) })
 
@@ -183,6 +218,7 @@ runner_uri = os.environ['RUNNER_URI']
 peak_suite = PeakSuiteResource()
 peak_suites = PeakSuitesResource(status_uri, runner_uri, queue)
 peak_suite_avg = PeakSuiteAvgTimeResource()
+peak_suite_metrics = PeakSuitesMetricsResource()
 peak_suite_tests = PeakSuitesTestsDetailResource()
 peak_suite_time = PeakSuiteTimeDataResource()
 
@@ -193,6 +229,7 @@ peak_test_status = PeakStatusResource()
 api.add_route('/suites/', peak_suites)
 api.add_route('/suites/{suite_uuid}', peak_suite)
 api.add_route('/suites/{suite_uuid}/tests', peak_suite_tests)
+api.add_route('/suites/{suite_uuid}/metrics', peak_suite_metrics)
 api.add_route('/suites/{suite_uuid}/metrics/raw_response_counts', peak_suite_time)
 api.add_route('/suites/{suite_uuid}/metrics/avg_response_times', peak_suite_avg)
 
