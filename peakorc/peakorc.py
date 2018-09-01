@@ -1,5 +1,5 @@
 import falcon
-from peakmodels import *
+from peakorc.peakmodels import *
 from playhouse.shortcuts import model_to_dict
 import numpy
 import json
@@ -7,20 +7,6 @@ import math
 import uuid
 import requests
 import os
-from redis import Redis
-from rq import Queue
-
-def create_tests_from_req(requests_per_node, nodes, status_uri, runner_uri,
-                          suite, url):
-    for i in range(0, nodes):
-        test_uuid = uuid.uuid4()
-        PeakTest.create(url=url, requests_req=requests_per_node,
-                          uuid=test_uuid, suite=suite)
-        requests.post(runner_uri+"/start",
-                      headers={'requests': str(requests_per_node),
-                               'test-url': url,
-                               'uuid': str(test_uuid),
-                               'status-uri': status_uri})
 
 class PeakTestResource():
     def on_get(self, req, resp, test_uuid):
@@ -126,10 +112,8 @@ class PeakSuiteAvgTimeResource():
 
 
 class PeakSuitesResource():
-    def __init__(self, status_uri, runner_uri, queue):
+    def __init__(self, status_uri):
         self.status_uri = status_uri
-        self.runner_uri = runner_uri
-        self.queue = queue
 
     def on_get(self, req, resp):
         # check if this is a paginated query
@@ -158,8 +142,6 @@ class PeakSuitesResource():
         suite_uuid = uuid.uuid4()
         suite = PeakTestSuite.create(uuid=suite_uuid, requests=total_requests,
                                      description=description)
-        self.queue.enqueue(create_tests_from_req,args=(requests_per_node,nodes,status_uri,
-                      runner_uri,suite,url),timeout=4000)
 
         resp.body = json.dumps({'id': str(suite_uuid) })
 
@@ -172,16 +154,13 @@ class PeakSuitesTestsDetailResource():
                                 indent=4,
                                 default=str)
 
-# rq queue for creating requests
-queue = Queue(connection=Redis())
 
 api = falcon.API(middleware=[PeeweeConnectionMiddleware()])
 
 status_uri = os.environ['STATUS_URI']
-runner_uri = os.environ['RUNNER_URI']
 
 peak_suite = PeakSuiteResource()
-peak_suites = PeakSuitesResource(status_uri, runner_uri, queue)
+peak_suites = PeakSuitesResource(status_uri)
 peak_suite_avg = PeakSuiteAvgTimeResource()
 peak_suite_tests = PeakSuitesTestsDetailResource()
 peak_suite_time = PeakSuiteTimeDataResource()

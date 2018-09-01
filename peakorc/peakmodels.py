@@ -9,10 +9,6 @@ psql_db = PostgresqlDatabase(
     host=os.environ['PEAKDB_HOST'])
 
 
-def init_tables():
-    psql_db.create_tables([PeakTest,PeakTestSuite,PeakTimeData], safe=True)
-
-
 class PeeweeConnectionMiddleware(object):
     def process_request(self, req, resp):
         psql_db.connect(reuse_if_open=True)
@@ -46,3 +42,5 @@ class PeakTimeData(BaseModel):
     num_ok = IntegerField(default=0)
     num_error = IntegerField(default=0)
     duration = DoubleField(default=0.0)
+
+psql_db.create_tables([PeakTest,PeakTestSuite,PeakTimeData], safe=True)
