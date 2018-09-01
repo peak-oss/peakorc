@@ -4,5 +4,4 @@ psycopg2
 gunicorn
 requests
 numpy
-subprocess32
-rq
+kubernetes

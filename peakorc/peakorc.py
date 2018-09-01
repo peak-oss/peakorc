@@ -6,6 +6,9 @@ import json
 import math
 import uuid
 import requests
+import kubernetes.client
+import kubernetes.config
+from kubernetes.client.apis import batch_v1_api
 import os
 
 class PeakTestResource():
@@ -112,8 +115,9 @@ class PeakSuiteAvgTimeResource():
 
 
 class PeakSuitesResource():
-    def __init__(self, status_uri):
+    def __init__(self, status_uri, k8sclient):
         self.status_uri = status_uri
+        self.k8sclient = k8sclient
 
     def on_get(self, req, resp):
         # check if this is a paginated query
@@ -142,6 +146,41 @@ class PeakSuitesResource():
         suite_uuid = uuid.uuid4()
         suite = PeakTestSuite.create(uuid=suite_uuid, requests=total_requests,
                                      description=description)
+        # use the kubernetes API to create batched jobs
+        # kubernetes requires that each job has a unique 
+        # name
+        for i in range(0,nodes):
+            test_uuid = uuid.uuid4()
+            PeakTest.create(url=url, requests_req=requests_per_node,
+                    uuid=test_uuid, suite=suite)
+            job_manifest = {
+                    'kind': 'Job',
+                    'spec': {
+                        'template':
+                        {'spec':
+                            {'containers': [
+                                {'image':'docker.io/peakapi/peaktest:latest',
+                                    'name': 'peaktest',
+                                 'env': [
+                                     { 'name': 'REQUESTS',
+                                       'value': str(requests_per_node)
+                                     },
+                                     { 'name': 'URL',
+                                       'value': url
+                                     },
+                                     { 'name': 'UUID',
+                                       'value': str(test_uuid)
+                                     },
+                                     { 'name': 'STATUS_URI',
+                                       'value': status_uri
+                                     }
+                                 ],
+                                 }],
+                                 'restartPolicy': 'Never'},
+                            'metadata': {'name': 'peaktest'}}},
+                        'apiVersion': 'batch/v1',
+                        'metadata': {'name': 'peaktest'+str(test_uuid)[:8]}}
+            self.k8sclient.create_namespaced_job(body=job_manifest, namespace='myproject')
 
         resp.body = json.dumps({'id': str(suite_uuid) })
 
@@ -157,10 +196,13 @@ class PeakSuitesTestsDetailResource():
 
 api = falcon.API(middleware=[PeeweeConnectionMiddleware()])
 
+kubernetes.config.load_incluster_config()
+batch_client = batch_v1_api.BatchV1Api()
+
 status_uri = os.environ['STATUS_URI']
 
 peak_suite = PeakSuiteResource()
-peak_suites = PeakSuitesResource(status_uri)
+peak_suites = PeakSuitesResource(status_uri, batch_client)
 peak_suite_avg = PeakSuiteAvgTimeResource()
 peak_suite_tests = PeakSuitesTestsDetailResource()
 peak_suite_time = PeakSuiteTimeDataResource()
