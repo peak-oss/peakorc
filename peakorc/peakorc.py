@@ -180,7 +180,7 @@ class PeakSuitesResource():
                             'metadata': {'name': 'peaktest'}}},
                         'apiVersion': 'batch/v1',
                         'metadata': {'name': 'peaktest'+str(test_uuid)[:8]}}
-            self.k8sclient.create_namespaced_job(body=job_manifest, namespace='myproject')
+            self.k8sclient.create_namespaced_job(body=job_manifest, namespace=os.environ['OPENSHIFT_BUILD_NAMESPACE'])
 
         resp.body = json.dumps({'id': str(suite_uuid) })
 
