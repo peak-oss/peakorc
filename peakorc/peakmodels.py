@@ -25,22 +25,4 @@ class PeakTestSuite(BaseModel):
     description = TextField(default="not_specified")
     requests = BigIntegerField(default=0)
 
-
-class PeakTest(BaseModel):
-    suite = ForeignKeyField(PeakTestSuite)
-    uuid = UUIDField()
-    requests_req = BigIntegerField(default=0)
-    url = TextField()
-    num_ok = IntegerField(default=0)
-    time_start = DateTimeField(default=datetime.datetime.now)
-
-class PeakTimeData(BaseModel):
-    test = ForeignKeyField(PeakTest)
-    suite = ForeignKeyField(PeakTestSuite)
-    uuid = UUIDField()
-    requests_com = BigIntegerField(default=0)
-    num_ok = IntegerField(default=0)
-    num_error = IntegerField(default=0)
-    duration = DoubleField(default=0.0)
-
-psql_db.create_tables([PeakTest,PeakTestSuite,PeakTimeData], safe=True)
+psql_db.create_tables([PeakTestSuite], safe=True)
