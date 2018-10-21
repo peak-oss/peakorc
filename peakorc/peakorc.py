@@ -64,7 +64,7 @@ class PeakSuitesResource():
                         'template':
                         {'spec':
                             {'containers': [
-                                {'image':'docker.io/peakapi/peaktest:latest',
+                                {'image':os.environ['PEAKTEST_IMG'],
                                     'name': 'peaktest',
                                  'env': [
                                      { 'name': 'REQUESTS',
@@ -75,6 +75,9 @@ class PeakSuitesResource():
                                      },
                                      { 'name': 'UUID',
                                        'value': str(suite_uuid)
+                                     },
+                                     { 'name': 'INFLUX_URL',
+                                       'value': os.environ['INFLUX_URL']
                                      }
                                  ],
                                  }],
