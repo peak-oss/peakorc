@@ -1,7 +1,6 @@
 import falcon
 from peakorc.peakmodels import *
 from playhouse.shortcuts import model_to_dict
-import numpy
 import json
 import math
 import uuid
