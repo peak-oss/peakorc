@@ -18,9 +18,32 @@ class PeakSuiteResource():
                                    indent=4,
                                    sort_keys=True,
                                    default=str)
-        except PeakTest.DoesNotExist:
+        except PeakTestSuite.DoesNotExist:
             resp.status = falcon.HTTP_404
 
+class PeakJobsResource():
+    def on_get(self,req, resp, suite_uuid):
+        try:
+            suite = PeakTestSuite.get(PeakTestSuite.uuid == suite_uuid)
+            resp.body = json.dumps({'jobs':[model_to_dict(job) for job in suite.jobs]},
+                                    indent=4,
+                                    default=str)
+        except PeakTestSuite.DoesNotExist:
+            resp.status = falcon.HTTP_404
+
+class StopPeakSuiteJobs():
+    def __init__(self, k8sclient):
+        self.k8sclient = k8sclient
+
+    def on_post(self, req, resp, suite_uuid):
+        try: 
+            suite = PeakTestSuite.get(PeakTestSuite.uuid == suite_uuid)
+            body = kubernetes.client.V1DeleteOptions(propagation_policy="Foreground")
+            for job in suite.jobs:
+                name = job.job_name
+                self.k8sclient.delete_namespaced_job(name=name, body=body, namespace=os.environ['OPENSHIFT_BUILD_NAMESPACE'])
+        except PeakTestSuite.DoesNotExist:
+            resp.status = falcon.HTTP_404
 
 class PeakSuitesResource():
     def __init__(self, k8sclient):
@@ -84,7 +107,8 @@ class PeakSuitesResource():
                             'metadata': {'name': 'peaktest'}}},
                         'apiVersion': 'batch/v1',
                         'metadata': {'name': 'peaktest'+str(suite_uuid)[:8]+str(i)}}
-            self.k8sclient.create_namespaced_job(body=job_manifest, namespace=os.environ['OPENSHIFT_BUILD_NAMESPACE'])
+            job = self.k8sclient.create_namespaced_job(body=job_manifest, namespace=os.environ['OPENSHIFT_BUILD_NAMESPACE'])
+            PeakTestJob.create(job_name=job.metadata.name, suite=suite)
 
         resp.body = json.dumps({'id': str(suite_uuid) })
 
@@ -96,7 +120,11 @@ batch_client = batch_v1_api.BatchV1Api()
 
 peak_suite = PeakSuiteResource()
 peak_suites = PeakSuitesResource(batch_client)
+peak_jobs = PeakJobsResource()
+stop_suite = StopPeakSuiteJobs(batch_client)
 
 api.add_route('/suites/', peak_suites)
 api.add_route('/suites/{suite_uuid}', peak_suite)
+api.add_route('/suites/{suite_uuid}/jobs', peak_jobs)
+api.add_route('/suites/{suite_uuid}/stop', stop_suite)
 

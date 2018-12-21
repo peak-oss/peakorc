@@ -25,4 +25,8 @@ class PeakTestSuite(BaseModel):
     description = TextField(default="not_specified")
     requests = BigIntegerField(default=0)
 
-psql_db.create_tables([PeakTestSuite], safe=True)
+class PeakTestJob(BaseModel):
+    job_name = TextField(default="not_provided")
+    suite = ForeignKeyField(PeakTestSuite, backref="jobs")
+
+psql_db.create_tables([PeakTestSuite,PeakTestJob], safe=True)
