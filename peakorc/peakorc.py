@@ -38,7 +38,7 @@ class StopPeakSuiteJobs():
     def on_post(self, req, resp, suite_uuid):
         try: 
             suite = PeakTestSuite.get(PeakTestSuite.uuid == suite_uuid)
-            body = kubernetes.client.V1DeleteOptions(propagation_policy="Foreground")
+            body = kubernetes.client.V1DeleteOptions(propagation_policy="Background")
             for job in suite.jobs:
                 name = job.job_name
                 self.k8sclient.delete_namespaced_job(name=name, body=body, namespace=os.environ['OPENSHIFT_BUILD_NAMESPACE'])
