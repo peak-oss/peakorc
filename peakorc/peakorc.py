@@ -100,6 +100,14 @@ class PeakSuitesResource():
                                      },
                                      { 'name': 'INFLUX_URL',
                                        'value': os.environ['INFLUX_URL']
+                                     },
+                                     {
+                                       'name': 'POD_NAMESPACE',
+                                       'valueFrom': {
+                                         'fieldRef': {
+                                           'fieldPath': 'metadata.name'
+                                         }
+                                       }
                                      }
                                  ],
                                  }],
@@ -107,7 +115,7 @@ class PeakSuitesResource():
                             'metadata': {'name': 'peaktest'}}},
                         'apiVersion': 'batch/v1',
                         'metadata': {'name': 'peaktest'+str(suite_uuid)[:8]+str(i)}}
-            job = self.k8sclient.create_namespaced_job(body=job_manifest, namespace=os.environ['OPENSHIFT_BUILD_NAMESPACE'])
+            job = self.k8sclient.create_namespaced_job(body=job_manifest, namespace=os.environ['POD_NAMESPACE'])
             PeakTestJob.create(job_name=job.metadata.name, suite=suite)
 
         resp.body = json.dumps({'id': str(suite_uuid) })
