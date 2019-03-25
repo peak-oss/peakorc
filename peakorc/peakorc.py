@@ -41,7 +41,7 @@ class StopPeakSuiteJobs():
             body = kubernetes.client.V1DeleteOptions(propagation_policy="Background")
             for job in suite.jobs:
                 name = job.job_name
-                self.k8sclient.delete_namespaced_job(name=name, body=body, namespace=os.environ['OPENSHIFT_BUILD_NAMESPACE'])
+                self.k8sclient.delete_namespaced_job(name=name, body=body, namespace=os.environ['POD_NAMESPACE'])
         except PeakTestSuite.DoesNotExist:
             resp.status = falcon.HTTP_404
 
@@ -100,14 +100,6 @@ class PeakSuitesResource():
                                      },
                                      { 'name': 'INFLUX_URL',
                                        'value': os.environ['INFLUX_URL']
-                                     },
-                                     {
-                                       'name': 'POD_NAMESPACE',
-                                       'valueFrom': {
-                                         'fieldRef': {
-                                           'fieldPath': 'metadata.name'
-                                         }
-                                       }
                                      }
                                  ],
                                  }],
